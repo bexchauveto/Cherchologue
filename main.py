@@ -147,7 +147,7 @@ if __name__ == "__main__":
     print('Number of arguments:', len(sys.argv), 'arguments.')
     print('Argument List:', str(sys.argv))
     if len(sys.argv) > 1:
-        if sys.argv[1] == "-generate-index":
+        if ("--generate-index" in sys.argv) or ("-g" in sys.argv):
             indexer()
     else:
         requete_mots_clefs("je suis une chaine de recherche")
