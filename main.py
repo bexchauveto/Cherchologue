@@ -15,6 +15,7 @@ import operator
 import chardet
 import urllib.request
 import math
+import sparql_client
 
 
 class Mot:
@@ -352,10 +353,16 @@ def calculJACCARD(tfidf, idf):
     return sorted(jac.items(), key=operator.itemgetter(1), reverse=True);
 
 if __name__ == "__main__":
+    sparql_client.ask("""
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        SELECT ?label
+        WHERE { <http://dbpedia.org/resource/Asturias> rdfs:label ?label }
+    """)
+
     tf = []
     idf = []
     tfidf = {}
-    requete_liste = ["personnes intouchables", "lieunaissance omar sy","premiere récompence intouchables", "palmares globes de cristal 2012","membre jury globes de cristal 2012","prix omar sy globes de cristal 2012","lieu globes cristal 2012", "prix omar sy","acteur joué avec omar sy"]
+    requete_liste = ["personnes intouchables", "lieunaissance omar sy","premiere récompence intouchables", "palmares globes de cristal 2012","membre jury globes de cristal 2012","prix omar sy globes de cristal 2012","lieu globes cristal 2012", "prix omar sy","acteur joué avec omar sy","prix enfant de Trappes", "personne a joué avec Omar Sy"]
     requete = ""
     pprint(sys.argv)
     if len(sys.argv) > 1:
@@ -377,6 +384,10 @@ if __name__ == "__main__":
             requete = requete_liste[7]
         if ("-q9" in sys.argv):
             requete = requete_liste[8]
+        if ("-q10" in sys.argv):
+            requete = requete_liste[9]
+        if ("-q11" in sys.argv):
+            requete = requete_liste[10]
         if ("--generate-index" in sys.argv) or ("-g" in sys.argv):
             indexer()
         if ("--tf-naif" in sys.argv) or ("-tfn" in sys.argv):
@@ -415,8 +426,9 @@ if __name__ == "__main__":
             print("[JACCARD] Calcul du JACCARD en cours...")
             resultat = calculJACCARD(tfidf, idf)
             print("[JACCARD] Calcul du JACCARD finis")
-            outfile = open("result"+(sys.argv[i] for i+1 in range(0, len(sys.argv)-1))+"-idf-jac.json", 'w')
-            outfile.write(json.dumps(resultat))
 
-    outfile = open("result"+".json", 'w')
-    outfile.write(json.dumps(fichiers_ponderes))
+    name = ""
+    for i in range(1,len(sys.argv)):
+        name += sys.argv[i]
+    outfile = open("result"+name+".json",'w')
+    outfile.write(json.dumps(resultat))
