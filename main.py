@@ -165,6 +165,11 @@ def requete_tf_naif(requete):
     index_reverse = json.load(index_reverse_file)
     ponderations = []
     ponderations_tf = []
+
+    liste_fichiers = []
+    for fichier in index_reverse["documents"]:
+        liste_fichiers.append(fichier["fichier"])
+
     for mot_recherche in requete.split():
         fichiers_ordonnes = []
         for mot in index["mots"]:
@@ -179,12 +184,15 @@ def requete_tf_naif(requete):
                     ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]))
                 else:
                     ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]+1))
+
+        if ponderations_mot_courant == []:
+            for i in range(0, len(liste_fichiers)):
+                ponderations_mot_courant.append((liste_fichiers[i][0],0))
+
         ponderations.append(ponderations_mot_courant)
         ponderations_tf.append(fichiers_ordonnes)
 
-    liste_fichiers = []
-    for fichier in index_reverse["documents"]:
-        liste_fichiers.append(fichier["fichier"])
+
 
     ponderation_finale = [[0 for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
@@ -193,6 +201,7 @@ def requete_tf_naif(requete):
                 if liste_fichiers[i] == ponderations[j][k][0]:
                     ponderation_finale[i][j] = ponderations[j][k][1]
             if ponderation_finale[i][j] == 0:
+                #if len(ponderations[j]) > 0:
                 ponderation_finale[i][j] = ponderations[j][-1][1]+1
 
     ponderation_tf_finale = [[(liste_fichiers[y],0) for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
@@ -228,32 +237,41 @@ def requete_tf_robertson(requete):
     index_reverse = json.load(index_reverse_file)
     ponderations = []
     ponderations_tf = []
-    for mot_recherche in requete.split():
-        fichiers_ordonnes = []
-        for mot in index["mots"]:
-            if mot["mot"] == mot_recherche:
-                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), reverse=True)
-                tf = {}
-                for value in fichiers_ordonnes:
-                    tf[value[0]] = value[1]/(0.5+1.5*(get_nb_de_mots(value[0])/index_reverse['nb_mots_moyen'])+value[1])
-        fichiers_ordonnes = sorted(tf.items(), key=operator.itemgetter(1), reverse=True)
-        ponderations_mot_courant = []
-        for i in range(0, len(fichiers_ordonnes)):
-            # fichiers_ordonnes[i][0] : nom du fichier
-            # fichiers_ordonnes[i][1] : occurence du mot recherché
-            if i == 0:
-                ponderations_mot_courant.append((fichiers_ordonnes[i][0],1))
-            else:
-                if (fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]):
-                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]))
-                else:
-                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]+1))
-        ponderations.append(ponderations_mot_courant)
-        ponderations_tf.append(fichiers_ordonnes)
-    # pprint(ponderations_tf)
+
     liste_fichiers = []
     for fichier in index_reverse["documents"]:
         liste_fichiers.append(fichier["fichier"])
+
+    for mot_recherche in requete.split():
+        fichiers_ordonnes = []
+        tf = {}
+        ponderations_mot_courant = []
+        for mot in index["mots"]:
+            if mot["mot"] == mot_recherche:
+                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), reverse=True)
+
+                for value in fichiers_ordonnes:
+                    tf[value[0]] = value[1]/(0.5+1.5*(get_nb_de_mots(value[0])/index_reverse['nb_mots_moyen'])+value[1])
+        if tf != {}:
+            fichiers_ordonnes = sorted(tf.items(), key=operator.itemgetter(1), reverse=True)
+            for i in range(0, len(fichiers_ordonnes)):
+                # fichiers_ordonnes[i][0] : nom du fichier
+                # fichiers_ordonnes[i][1] : occurence du mot recherché
+                if i == 0:
+                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],1))
+                else:
+                    if (fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]):
+                        ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]))
+                    else:
+                        ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]+1))
+
+
+        if ponderations_mot_courant == []:
+            for i in range(0, len(liste_fichiers)):
+                ponderations_mot_courant.append((liste_fichiers[i][0],0))
+
+        ponderations.append(ponderations_mot_courant)
+        ponderations_tf.append(fichiers_ordonnes)
 
     ponderation_finale = [[0 for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
@@ -297,6 +315,7 @@ def calculIDF(mot_requete):
     for mot in index["mots"]:
         if mot_requete == mot["mot"]:
             return math.log(len(index_reverse["documents"])/len(mot["fichiers"]))
+    return 0
 
 def calculTFIDF(tf, idf):
     tfidf = {}
@@ -352,7 +371,36 @@ def calculJACCARD(tfidf, idf):
         jac[tfidf[i][0]] = tmp
     return sorted(jac.items(), key=operator.itemgetter(1), reverse=True);
 
+def calculRappelPrecision(numq, methode, qrel, result):
+    fichier_qrel = open(qrel,'r')
+    sep = fichier_qrel.read().split("\n")
+    reference = {}
+    nb_pertinents = 0
+    for i in range(0, len(sep)-1):
+        reference[sep[i].split("\t")[0]] = sep[i].split("\t")[1]
+        if sep[i].split("\t")[1] == "1":
+            nb_pertinents += 1
+
+    result_file = open(result,'r')
+    fichier_result = json.load(result_file)
+
+    tableau_a_deux_dimensions = [[0 for x in range(0,2)] for y in range(0,len(fichier_result))]
+    nb_fichiers_pertinents_trouves = 0
+    for i in range(0,len(fichier_result)):
+        if reference[fichier_result[i][0]] == "1":
+            nb_fichiers_pertinents_trouves += 1
+        tableau_a_deux_dimensions[i][0] = nb_fichiers_pertinents_trouves/nb_pertinents
+        tableau_a_deux_dimensions[i][1] = nb_fichiers_pertinents_trouves/(i+1)
+
+    pprint(tableau_a_deux_dimensions)
+
+    out_file = open("evaluations/rappel-precision-" + numq + "-" + methode + ".csv",'w')
+    out_file.write("Ra, Pr\n")
+    for i in range(0,len(tableau_a_deux_dimensions)):
+        out_file.write(str(tableau_a_deux_dimensions[i][0]) + ", " + str(tableau_a_deux_dimensions[i][1]) + "\n")
+
 if __name__ == "__main__":
+    calculRappelPrecision(str(sys.argv[1]), sys.argv[2],"../RessourcesProjet/qrels/qrelQ"+str(sys.argv[1])+".txt","resultats/result-q1-"+sys.argv[2]+".json")
     sparql_client.ask("""
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         SELECT ?label

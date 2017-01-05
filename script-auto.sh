@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in {1..11}
+for i in {1..1}
 do
 	./main.py -q${i} -tfn -idf -ps
 	./main.py -q${i} -tfn -idf -cd
@@ -11,4 +11,3 @@ do
 	./main.py -q${i} -tfr -idf -cos
 	./main.py -q${i} -tfr -idf -jac
 done
-
