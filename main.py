@@ -430,5 +430,5 @@ if __name__ == "__main__":
     name = ""
     for i in range(1,len(sys.argv)):
         name += sys.argv[i]
-    outfile = open("result"+name+".json",'w')
+    outfile = open("resultats/result"+name+".json",'w')
     outfile.write(json.dumps(resultat))
