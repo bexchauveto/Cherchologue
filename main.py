@@ -1,31 +1,37 @@
 #!/usr/bin/env python3
 import os
 import sys
-from bs4 import BeautifulSoup
-import nltk
-from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import WhitespaceTokenizer
-from nltk.corpus import stopwords
 import re
-from collections import Counter
 import json
-from collections import OrderedDict
 from pprint import pprint
 import operator
-import chardet
 import urllib.request
 import math
-import sparql_client
+from __future__ import print_function
+from SPARQLWrapper import SPARQLWrapper, JSON
+import chardet
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import WhitespaceTokenizer
+from bs4 import BeautifulSoup
 
 
-class Mot:
+class Mot(object):
+    """
+    Objet mot
+    """
     def __init__(self, mot, fichier):
+        """
+        Fonction init
+        """
         self.mot = mot
         self.nb_occ = 1
         self.fichiers = []
-        self.fichiers.append([fichier,1])
+        self.fichiers.append([fichier, 1])
 
-    def ajouter_occurence(self,fichier):
+    def ajouter_occurence(self, fichier):
+        """
+        Fonction ajouter occurence
+        """
         found = False
         for couple in self.fichiers:
             if couple[0] == fichier:
@@ -34,24 +40,36 @@ class Mot:
                 found = True
                 break
         if not found:
-            self.fichiers.append([fichier,1])
+            self.fichiers.append([fichier, 1])
             self.nb_occ += 1
 
     def __str__(self):
-        ret = "{\"mot\":\"" + self.mot + "\",\"nb_occ\":" + str(self.nb_occ) + ",\"fichiers\":{"
+        """
+        Fonction str
+        """
+        ret = "{\"mot\":\"" + self.mot + "\", \"nb_occ\":" + str(self.nb_occ) + ", \"fichiers\":{"
         for fichier in self.fichiers:
-            ret += "\"" + fichier[0] + "\":" + str(fichier[1]) + ","
+            ret += "\"" + fichier[0] + "\":" + str(fichier[1]) + ", "
         ret = ret[:-1]
         ret += "}}"
         return ret
 
-class Document:
+class Document(object):
+    """
+    objet Document
+    """
     def __init__(self, fichier):
+        """
+        Fonction init
+        """
         self.fichier = fichier
         self.mots = []
         self.nb_de_mots = 0
 
-    def ajouter_mot(self,mot):
+    def ajouter_mot(self, mot):
+        """
+        Fonction ajouter mot
+        """
         found = False
         self.nb_de_mots += 1
         for couple in self.mots:
@@ -60,18 +78,25 @@ class Document:
                 found = True
                 break
         if not found:
-            self.mots.append([mot,1])
+            self.mots.append([mot, 1])
 
     def __str__(self):
-        ret = "{\"fichier\":\"" + self.fichier + "\",\"nb_de_mots\":" + str(self.nb_de_mots) + ",\"mots\":{"
+        """
+        Fonction str
+        """
+        ret = "{\"fichier\":\"" + self.fichier + "\", \"nb_de_mots\":" + str(self.nb_de_mots) + \
+              ", \"mots\":{"
         for mot in self.mots:
-            ret += "\"" + mot[0] + "\":" + str(mot[1]) + ","
+            ret += "\"" + mot[0] + "\":" + str(mot[1]) + ", "
         ret = ret[:-1]
         ret += "}}"
         return ret
 
 
 def indexer():
+    """
+    Fonction indexer
+    """
     mots_a_ecrire = []
     fichiers_a_ecrire = []
     nb_de_mots_total = 0
@@ -83,12 +108,15 @@ def indexer():
     for nom_fichier in os.listdir("../RessourcesProjet/corpus-utf8"):
         fichier = Document(nom_fichier)
         tokens = []
-        with urllib.request.urlopen("file:///home/dorian/Documents/INSA/5IL/Recherche d'Informations/RessourcesProjet/corpus-utf8/" + nom_fichier) as url:
+        with urllib.request.urlopen("file:///home/dorian/Documents/INSA/5IL/ \
+                                     Recherche d'Informations/RessourcesProjet/corpus-utf8/"  \
+                                     + nom_fichier) as url:
             rawdata = url.read()
         encodage = chardet.detect(rawdata)["encoding"]
         print(nom_fichier + " (" + encodage + ")")
         stemmer = SnowballStemmer("french")
-        soup = BeautifulSoup(open("../RessourcesProjet/corpus-utf8/"+nom_fichier, encoding=encodage), "lxml", from_encoding=encodage)
+        soup = BeautifulSoup(open("../RessourcesProjet/corpus-utf8/"+nom_fichier,  \
+                             encoding=encodage), "lxml", from_encoding=encodage)
 
 
         # kill all script and style elements
@@ -141,17 +169,24 @@ def indexer():
     for fichier in fichiers_a_ecrire:
         output += str(fichier) + ", \n"
     output = output[:-3]
-    output += "],\n\"nb_de_mots_total\":" + str(nb_de_mots_total) + ",\n\"nb_mots_moyen\":" + str(nb_de_mots_total/nb_docs) + "}"
+    output += "], \n\"nb_de_mots_total\":" + str(nb_de_mots_total) + ", \n\"nb_mots_moyen\":" + \
+              str(nb_de_mots_total/nb_docs) + "}"
 
     outfile = open("index-reverse.json", 'w')
     outfile.write(output)
 
 def requete_mots_clefs(requete):
+    """
+    Fonction requete mots clefs
+    """
     index_file = open("index.json", 'r')
     index = json.load(index_file)
     pprint(index)
 
 def get_nb_de_mots(nom_fichier):
+    """
+    Fonction get nb de mots
+    """
     index_reverse_file = open("index-reverse.json", 'r')
     index_reverse = json.load(index_reverse_file)
     for fichier in index_reverse["documents"]:
@@ -159,6 +194,9 @@ def get_nb_de_mots(nom_fichier):
             return fichier["nb_de_mots"]
 
 def requete_tf_naif(requete):
+    """
+    Fonction requete tf naif
+    """
     index_file = open("index.json", 'r')
     index = json.load(index_file)
     index_reverse_file = open("index-reverse.json", 'r')
@@ -174,42 +212,48 @@ def requete_tf_naif(requete):
         fichiers_ordonnes = []
         for mot in index["mots"]:
             if mot["mot"] == mot_recherche:
-                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), reverse=True)
+                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), \
+                                           reverse=True)
         ponderations_mot_courant = []
         for i in range(0, len(fichiers_ordonnes)):
             if i == 0:
-                ponderations_mot_courant.append((fichiers_ordonnes[i][0],1))
+                ponderations_mot_courant.append((fichiers_ordonnes[i][0], 1))
             else:
-                if (fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]):
-                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]))
+                if fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]:
+                    ponderations_mot_courant.append((fichiers_ordonnes[i][0], \
+                                                     ponderations_mot_courant[i-1][1]))
                 else:
-                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]+1))
+                    ponderations_mot_courant.append((fichiers_ordonnes[i][0], \
+                                                     ponderations_mot_courant[i-1][1]+1))
 
         if ponderations_mot_courant == []:
             for i in range(0, len(liste_fichiers)):
-                ponderations_mot_courant.append((liste_fichiers[i][0],0))
+                ponderations_mot_courant.append((liste_fichiers[i][0], 0))
 
         ponderations.append(ponderations_mot_courant)
         ponderations_tf.append(fichiers_ordonnes)
 
 
 
-    ponderation_finale = [[0 for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
+    ponderation_finale = [[(x-x+y-y) for x in range(0, len(requete.split()))] \
+                             for y in range(0, len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
         for j in range(0, len(requete.split())):
-            for k in range(0,len(ponderations[j])):
+            for k in range(0, len(ponderations[j])):
                 if liste_fichiers[i] == ponderations[j][k][0]:
                     ponderation_finale[i][j] = ponderations[j][k][1]
             if ponderation_finale[i][j] == 0:
                 #if len(ponderations[j]) > 0:
                 ponderation_finale[i][j] = ponderations[j][-1][1]+1
 
-    ponderation_tf_finale = [[(liste_fichiers[y],0) for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
+    ponderation_tf_finale = [[(liste_fichiers[y], (x-x)) for x in range(0, len(requete.split()))] \
+                                                     for y in range(0, len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
         for j in range(0, len(requete.split())):
-            for k in range(0,len(ponderations_tf[j])):
+            for k in range(0, len(ponderations_tf[j])):
                 if liste_fichiers[i] == ponderations_tf[j][k][0]:
-                    ponderation_tf_finale[i][j] = (ponderations_tf[j][k][0],ponderations_tf[j][k][1])
+                    ponderation_tf_finale[i][j] = (ponderations_tf[j][k][0], \
+                                                   ponderations_tf[j][k][1])
 
     fichiers_ponderes = []
     for i in range(0, len(liste_fichiers)):
@@ -219,10 +263,10 @@ def requete_tf_naif(requete):
             somme_ponderations += ponderation_finale[i][j]
             ponderation_max += ponderations[j][-1][1]
         if somme_ponderations <= ponderation_max:
-            fichiers_ponderes.append((liste_fichiers[i],1))
+            fichiers_ponderes.append((liste_fichiers[i], 1))
         else:
-            fichiers_ponderes.append((liste_fichiers[i],0))
-        # fichiers_ponderes.append((liste_fichiers[i],somme_ponderations))
+            fichiers_ponderes.append((liste_fichiers[i], 0))
+        # fichiers_ponderes.append((liste_fichiers[i], somme_ponderations))
 
     outfile = open("result-tf-naif.json", 'w')
     outfile.write(json.dumps(fichiers_ponderes))
@@ -231,6 +275,9 @@ def requete_tf_naif(requete):
 
 
 def requete_tf_robertson(requete):
+    """
+    Fonction requete tf robertson
+    """
     index_file = open("index.json", 'r')
     index = json.load(index_file)
     index_reverse_file = open("index-reverse.json", 'r')
@@ -248,46 +295,53 @@ def requete_tf_robertson(requete):
         ponderations_mot_courant = []
         for mot in index["mots"]:
             if mot["mot"] == mot_recherche:
-                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), reverse=True)
+                fichiers_ordonnes = sorted(mot['fichiers'].items(), key=operator.itemgetter(1), \
+                                           reverse=True)
 
                 for value in fichiers_ordonnes:
-                    tf[value[0]] = value[1]/(0.5+1.5*(get_nb_de_mots(value[0])/index_reverse['nb_mots_moyen'])+value[1])
+                    tf[value[0]] = value[1]/(0.5+1.5*(get_nb_de_mots(value[0])/\
+                                             index_reverse['nb_mots_moyen'])+value[1])
         if tf != {}:
             fichiers_ordonnes = sorted(tf.items(), key=operator.itemgetter(1), reverse=True)
             for i in range(0, len(fichiers_ordonnes)):
                 # fichiers_ordonnes[i][0] : nom du fichier
                 # fichiers_ordonnes[i][1] : occurence du mot recherché
                 if i == 0:
-                    ponderations_mot_courant.append((fichiers_ordonnes[i][0],1))
+                    ponderations_mot_courant.append((fichiers_ordonnes[i][0], 1))
                 else:
-                    if (fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]):
-                        ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]))
+                    if fichiers_ordonnes[i][1] == fichiers_ordonnes[i-1][1]:
+                        ponderations_mot_courant.append((fichiers_ordonnes[i][0], \
+                                                         ponderations_mot_courant[i-1][1]))
                     else:
-                        ponderations_mot_courant.append((fichiers_ordonnes[i][0],ponderations_mot_courant[i-1][1]+1))
+                        ponderations_mot_courant.append((fichiers_ordonnes[i][0], \
+                                                         ponderations_mot_courant[i-1][1]+1))
 
 
         if ponderations_mot_courant == []:
             for i in range(0, len(liste_fichiers)):
-                ponderations_mot_courant.append((liste_fichiers[i][0],0))
+                ponderations_mot_courant.append((liste_fichiers[i][0], 0))
 
         ponderations.append(ponderations_mot_courant)
         ponderations_tf.append(fichiers_ordonnes)
 
-    ponderation_finale = [[0 for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
+    ponderation_finale = [[(x-x+y-y) for x in range(0, len(requete.split()))] \
+                             for y in range(0, len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
         for j in range(0, len(requete.split())):
-            for k in range(0,len(ponderations[j])):
+            for k in range(0, len(ponderations[j])):
                 if liste_fichiers[i] == ponderations[j][k][0]:
                     ponderation_finale[i][j] = ponderations[j][k][1]
             if ponderation_finale[i][j] == 0:
                 ponderation_finale[i][j] = ponderations[j][-1][1]+1
 
-    ponderation_tf_finale = [[(liste_fichiers[y],0) for x in range(0,len(requete.split()))] for y in range(0,len(liste_fichiers))]
+    ponderation_tf_finale = [[(liste_fichiers[y], (x-x)) for x in range(0, len(requete.split()))] \
+                                                     for y in range(0, len(liste_fichiers))]
     for i in range(0, len(liste_fichiers)):
         for j in range(0, len(requete.split())):
-            for k in range(0,len(ponderations_tf[j])):
+            for k in range(0, len(ponderations_tf[j])):
                 if liste_fichiers[i] == ponderations_tf[j][k][0]:
-                    ponderation_tf_finale[i][j] = (ponderations_tf[j][k][0],ponderations_tf[j][k][1])
+                    ponderation_tf_finale[i][j] = (ponderations_tf[j][k][0], \
+                                                    ponderations_tf[j][k][1])
 
     fichiers_ponderes = []
     for i in range(0, len(liste_fichiers)):
@@ -297,10 +351,10 @@ def requete_tf_robertson(requete):
             somme_ponderations += ponderation_finale[i][j]
             ponderation_max += ponderations[j][-1][1]
         if somme_ponderations <= ponderation_max:
-            fichiers_ponderes.append((liste_fichiers[i],1))
+            fichiers_ponderes.append((liste_fichiers[i], 1))
         else:
-            fichiers_ponderes.append((liste_fichiers[i],0))
-        # fichiers_ponderes.append((liste_fichiers[i],somme_ponderations))
+            fichiers_ponderes.append((liste_fichiers[i], 0))
+        # fichiers_ponderes.append((liste_fichiers[i], somme_ponderations))
 
     outfile = open("result-tf-robertson.json", 'w')
     outfile.write(json.dumps(fichiers_ponderes))
@@ -308,6 +362,9 @@ def requete_tf_robertson(requete):
     return ponderation_tf_finale
 
 def calculIDF(mot_requete):
+    """
+    Fonction calcul idf
+    """
     index_file = open("index.json", 'r')
     index = json.load(index_file)
     index_reverse_file = open("index-reverse.json", 'r')
@@ -318,165 +375,334 @@ def calculIDF(mot_requete):
     return 0
 
 def calculTFIDF(tf, idf):
+    """
+    Fonction calcul tfidf
+    """
     tfidf = {}
     for i in range(0, len(tf)):
         tmp = 0
         for j in range(0, len(idf)):
             tmp += tf[i][j][1]*idf[j]
         tfidf[tf[i][0][0]] = tmp
-    return sorted(tfidf.items(), key=operator.itemgetter(1), reverse=True);
+    return sorted(tfidf.items(), key=operator.itemgetter(1), reverse=True)
 
 def calculPS(tfidf, idf):
+    """
+    Fonction calcul ps
+    """
     ps = {}
     for i in range(0, len(tfidf)):
         tmp = 0
         for j in range(0, len(idf)):
             tmp += tfidf[i][1]*idf[j]
         ps[tfidf[i][0]] = tmp
-    return sorted(ps.items(), key=operator.itemgetter(1), reverse=True);
+    return sorted(ps.items(), key=operator.itemgetter(1), reverse=True)
 
 def calculCD(tfidf, idf):
+    """
+    Fonction calcul cd
+    """
     cd = {}
     for i in range(0, len(tfidf)):
         tmp = 0
         for j in range(0, len(idf)):
-            if tfidf[i][1] == 0 or idf[j] == 0 :
+            if tfidf[i][1] == 0 or idf[j] == 0:
                 tmp = 0
-            else :
+            else:
                 tmp += (2*(tfidf[i][1]*idf[j])/((tfidf[i][1]*tfidf[i][1])+(idf[j]*idf[j])))
         cd[tfidf[i][0]] = tmp
-    return sorted(cd.items(), key=operator.itemgetter(1), reverse=True);
+    return sorted(cd.items(), key=operator.itemgetter(1), reverse=True)
 
 def calculCOS(tfidf, idf):
+    """
+    Fonction calcul cos
+    """
     cos = {}
     for i in range(0, len(tfidf)):
         tmp = 0
         for j in range(0, len(idf)):
-            if tfidf[i][1] == 0 or idf[j] == 0 :
+            if tfidf[i][1] == 0 or idf[j] == 0:
                 tmp = 0
-            else :
+            else:
                 tmp += ((tfidf[i][1]*idf[j])/(math.sqrt((tfidf[i][1]*tfidf[i][1])+(idf[j]*idf[j]))))
         cos[tfidf[i][0]] = tmp
-    return sorted(cos.items(), key=operator.itemgetter(1), reverse=True);
+    return sorted(cos.items(), key=operator.itemgetter(1), reverse=True)
 
 def calculJACCARD(tfidf, idf):
+    """
+    Fonction calcul jaccard
+    """
     jac = {}
     for i in range(0, len(tfidf)):
         tmp = 0
         for j in range(0, len(idf)):
-            if tfidf[i][1] == 0 or idf[j] == 0 :
+            if tfidf[i][1] == 0 or idf[j] == 0:
                 tmp = 0
-            else :
-                tmp += ((tfidf[i][1]*idf[j])/((tfidf[i][1]*tfidf[i][1])+(idf[j]*idf[j])-(tfidf[i][1]*idf[j])))
+            else:
+                tmp += ((tfidf[i][1]*idf[j])/((tfidf[i][1]*tfidf[i][1])+(idf[j]*idf[j])-\
+                (tfidf[i][1]*idf[j])))
         jac[tfidf[i][0]] = tmp
-    return sorted(jac.items(), key=operator.itemgetter(1), reverse=True);
+    return sorted(jac.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculRappelPrecision(numq, methode, qrel, result):
-    fichier_qrel = open(qrel,'r')
-    sep = fichier_qrel.read().split("\n")
-    reference = {}
-    nb_pertinents = 0
-    for i in range(0, len(sep)-1):
-        reference[sep[i].split("\t")[0]] = sep[i].split("\t")[1]
-        if sep[i].split("\t")[1] == "1":
-            nb_pertinents += 1
+def calculRappelPrecision(methode):
+    """
+    Fonction calcul rappel precision
+    """
+    tableau_a_deux_dimensions = [[(x-x+y-y) for x in range(0, 2)] for y in range(0, 137)]
+    for k in range(1, 12):
+        fichier_qrel = open("../RessourcesProjet/qrels/qrelQ" + str(k) + ".txt", 'r')
+        sep = fichier_qrel.read().split("\n")
+        reference = {}
+        nb_pertinents = 0
+        for i in range(0, len(sep)-1):
+            reference[sep[i].split("\t")[0]] = sep[i].split("\t")[1]
+            if sep[i].split("\t")[1] == "1":
+                nb_pertinents += 1
 
-    result_file = open(result,'r')
-    fichier_result = json.load(result_file)
+        result_file = open("resultats/result-q" + str(k) + "-"+methode+".json", 'r')
+        fichier_result = json.load(result_file)
 
-    tableau_a_deux_dimensions = [[0 for x in range(0,2)] for y in range(0,len(fichier_result))]
-    nb_fichiers_pertinents_trouves = 0
-    for i in range(0,len(fichier_result)):
-        if reference[fichier_result[i][0]] == "1":
-            nb_fichiers_pertinents_trouves += 1
-        tableau_a_deux_dimensions[i][0] = nb_fichiers_pertinents_trouves/nb_pertinents
-        tableau_a_deux_dimensions[i][1] = nb_fichiers_pertinents_trouves/(i+1)
+        nb_fichiers_pertinents_trouves = 0
+        for i in range(0, len(fichier_result)):
+            if reference[fichier_result[i][0]] == "1":
+                nb_fichiers_pertinents_trouves += 1
+            tableau_a_deux_dimensions[i][0] += nb_fichiers_pertinents_trouves/nb_pertinents
+            tableau_a_deux_dimensions[i][1] += nb_fichiers_pertinents_trouves/(i+1)
 
-    pprint(tableau_a_deux_dimensions)
-
-    out_file = open("evaluations/rappel-precision-" + numq + "-" + methode + ".csv",'w')
+    for i in range(0, len(fichier_result)):
+        tableau_a_deux_dimensions[i][0] = tableau_a_deux_dimensions[i][0] / 11
+        tableau_a_deux_dimensions[i][1] = tableau_a_deux_dimensions[i][1] / 11
+    out_file = open("evaluations/rappel-precision-" + methode + ".csv", 'w')
     out_file.write("Ra, Pr\n")
-    for i in range(0,len(tableau_a_deux_dimensions)):
-        out_file.write(str(tableau_a_deux_dimensions[i][0]) + ", " + str(tableau_a_deux_dimensions[i][1]) + "\n")
+    for i in range(0, len(tableau_a_deux_dimensions)):
+        out_file.write(str(tableau_a_deux_dimensions[i][0]) + ", " + \
+        str(tableau_a_deux_dimensions[i][1]) + "\n")
+
+def ask(queryString):
+    """
+    Execute une requête SPARQL
+    """
+    sparql = SPARQLWrapper("http://localhost:3030/TP-5A")
+    sparql.setQuery(queryString)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+    return results
+
+def strategie_un(requete):
+    """
+    Fonction strategie un
+    """
+    mot_requete = requete.split()
+    mots_temp = []
+    mot_retour = requete
+    for i in range(0, len(mot_requete)):
+        for j in range(i, len(mot_requete)):
+            if i != j:
+                if j <= i+1:
+                    mots_temp.append(mot_requete[i]+" "+mot_requete[j])
+                else:
+                    mots_temp.append(mots_temp[-1]+" "+mot_requete[j])
+    mot_requete.extend(mots_temp)
+
+    for mot in mot_requete:
+        resultats = ask("\
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\
+                PREFIX FilmographieV1: <http://www.irit.fr/recherches/MELODI/ontologies/FilmographieV1.owl#>\
+                SELECT ?label\
+                WHERE {\
+                  {?subject rdfs:label \"" + mot + "\"@fr .\
+                  ?subject rdfs:label ?label .\
+                  FILTER (lang(?label) = 'fr')}\
+                  UNION\
+                  {?subject rdfs:label \"" + mot + "\".\
+                  ?subject rdfs:label ?label}\
+                }\
+                LIMIT 25\
+                ")
+
+        for result in resultats["results"]["bindings"]:
+            if result["label"]["value"]+" " not in mot_retour and \
+               " "+result["label"]["value"] not in mot_retour:
+                mot_retour += " "+result["label"]["value"]
+           #print(result["label"]["value"])
+    s = mot_retour.lower()
+    slist = s.split()
+    retour = " ".join(sorted(set(slist), key=slist.index))
+    return retour
+
+def strategie_deux(requete):
+    """
+    Fonction strategie deux
+    """
+    mot_requete = requete.split()
+    mots_temp = []
+    mot_retour = requete
+    for i in range(0, len(mot_requete)):
+        for j in range(i, len(mot_requete)):
+            if i != j:
+                if j <= i+1:
+                    mots_temp.append(mot_requete[i]+" "+mot_requete[j])
+                else:
+                    mots_temp.append(mots_temp[-1]+" "+mot_requete[j])
+    mot_requete.extend(mots_temp)
+    for i in range(0, len(mot_requete)):
+        for j in range(i, len(mot_requete)):
+            resultats = ask("\
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\
+                    PREFIX FilmographieV1: <http://www.irit.fr/recherches/MELODI/ontologies/FilmographieV1.owl#>\
+                    SELECT ?labelReq\
+                    WHERE {\
+                        {?uriProp rdfs:label \"" + mot_requete[i] + "\"@fr .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[j] + "\"@fr .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[j] + "\"@fr .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[i] + "\"@fr .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[i] + "\" .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[j] + "\" .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[j] + "\" .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[i] + "\" .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[i] + "\".\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[j] + "\"@fr .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[j] + "\"@fr .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[i] + "\" .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[i] + "\"@fr .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[j] + "\" .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                        UNION\
+                        {?uriProp rdfs:label \"" + mot_requete[j] + "\" .\
+                        ?uriResTrappes rdfs:label \"" + mot_requete[i] + "\"@fr .\
+                        ?uriResTrappes ?uriProp ?uriReq .\
+                        ?uriReq rdfs:label ?labelReq}\
+                    }\
+                    LIMIT 25\
+                    ")
+        for result in resultats["results"]["bindings"]:
+            if result["labelReq"]["value"] + " " not in mot_retour and " " + \
+               result["labelReq"]["value"] not in mot_retour:
+                mot_retour += " "+result["labelReq"]["value"]
+           #print(result["label"]["value"])
+    s = mot_retour.lower()
+    slist = s.split()
+    retour = " ".join(sorted(set(slist), key=slist.index))
+    return retour
 
 if __name__ == "__main__":
-    calculRappelPrecision(str(sys.argv[1]), sys.argv[2],"../RessourcesProjet/qrels/qrelQ"+str(sys.argv[1])+".txt","resultats/result-q1-"+sys.argv[2]+".json")
-    sparql_client.ask("""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        SELECT ?label
-        WHERE { <http://dbpedia.org/resource/Asturias> rdfs:label ?label }
-    """)
+    """
+    Fonction main
+    """
+    REQUETE_LISTE = ["personnes Intouchables", "lieu naissance Omar Sy", \
+    "personnes récompensées Intouchables", "palmarès Globes de Cristal 2012", \
+    "membre jury Globes de Cristal 2012", "prix Omar Sy Globes de Cristal 2012", \
+    "lieu Globes Cristal 2012", "prix Omar Sy", "acteur a joué avec Omar Sy", \
+    "prix enfant de Trappes", "personne a joué avec Omar Sy"]
 
-    tf = []
-    idf = []
-    tfidf = {}
-    requete_liste = ["personnes intouchables", "lieunaissance omar sy","premiere récompence intouchables", "palmares globes de cristal 2012","membre jury globes de cristal 2012","prix omar sy globes de cristal 2012","lieu globes cristal 2012", "prix omar sy","acteur joué avec omar sy","prix enfant de Trappes", "personne a joué avec Omar Sy"]
-    requete = ""
-    pprint(sys.argv)
+    TF = []
+    IDF = []
+    TFIDF = {}
+    REQUETE = ""
     if len(sys.argv) > 1:
-        if ("-q1" in sys.argv):
-            requete = requete_liste[0]
-        if ("-q2" in sys.argv):
-            requete = requete_liste[1]
-        if ("-q3" in sys.argv):
-            requete = requete_liste[2]
-        if ("-q4" in sys.argv):
-            requete = requete_liste[3]
-        if ("-q5" in sys.argv):
-            requete = requete_liste[4]
-        if ("-q6" in sys.argv):
-            requete = requete_liste[5]
-        if ("-q7" in sys.argv):
-            requete = requete_liste[6]
-        if ("-q8" in sys.argv):
-            requete = requete_liste[7]
-        if ("-q9" in sys.argv):
-            requete = requete_liste[8]
-        if ("-q10" in sys.argv):
-            requete = requete_liste[9]
-        if ("-q11" in sys.argv):
-            requete = requete_liste[10]
-        if ("--generate-index" in sys.argv) or ("-g" in sys.argv):
+        if "-q1" in sys.argv:
+            REQUETE = REQUETE_LISTE[0]
+        if "-q2" in sys.argv:
+            REQUETE = REQUETE_LISTE[1]
+        if "-q3" in sys.argv:
+            REQUETE = REQUETE_LISTE[2]
+        if "-q4" in sys.argv:
+            REQUETE = REQUETE_LISTE[3]
+        if "-q5" in sys.argv:
+            REQUETE = REQUETE_LISTE[4]
+        if "-q6" in sys.argv:
+            REQUETE = REQUETE_LISTE[5]
+        if "-q7" in sys.argv:
+            REQUETE = REQUETE_LISTE[6]
+        if "-q8" in sys.argv:
+            REQUETE = REQUETE_LISTE[7]
+        if "-q9" in sys.argv:
+            REQUETE = REQUETE_LISTE[8]
+        if "-q10" in sys.argv:
+            REQUETE = REQUETE_LISTE[9]
+        if "-q11" in sys.argv:
+            REQUETE = REQUETE_LISTE[10]
+        if "-s1" in sys.argv:
+            REQUETE = strategie_un(REQUETE)
+        if "-s2" in sys.argv:
+            REQUETE = strategie_deux(REQUETE)
+        if "--generate-index" in sys.argv or "-g" in sys.argv:
             indexer()
-        if ("--tf-naif" in sys.argv) or ("-tfn" in sys.argv):
-            if requete == "":
-                requete = input("[TF-Naïf] Entrez ce que vous cherchez : ")
+        if "--tf-naif" in sys.argv or "-tfn" in sys.argv:
+            if REQUETE == "":
+                REQUETE = input("[TF-Naïf] Entrez ce que vous cherchez : ")
             print("[TF-Naïf] Calcul du TF-Naïf en cours...")
-            tf = requete_tf_naif(requete)
+            TF = requete_tf_naif(REQUETE)
             print("[TF-Naïf] Calcul du TF-Naïf finis")
-        if ("--tf-robertson" in sys.argv) or ("-tfr" in sys.argv):
-            if requete == "":
-                requete = input("[TF-Robertson] Entrez ce que vous cherchez : ")
+        if "--tf-robertson" in sys.argv or "-tfr" in sys.argv:
+            if REQUETE == "":
+                REQUETE = input("[TF-Robertson] Entrez ce que vous cherchez : ")
             print("[TF-Robertson] Calcul du TF-Robertson en cours...")
-            tf = requete_tf_robertson(requete)
+            TF = requete_tf_robertson(REQUETE)
             print("[TF-Robertson] Calcul du TF-Robertson finis")
-        if ("-idf" in sys.argv):
+        if "-idf" in sys.argv:
             print("[IDF] Calcul de l'IDF en cours...")
-            for mot in requete.split():
-                idf.append(calculIDF(mot))
+            for mot in REQUETE.split():
+                IDF.append(calculIDF(mot))
             print("[IDF] Calcul de l'IDF finis")
             print("[TF.IDF] Calcul de TF.IDF en cours...")
-            tfidf = calculTFIDF(tf, idf)
+            TFIDF = calculTFIDF(TF, IDF)
             print("[TF.IDF] Calcul de TF.IDF finis")
-        if ("-ps" in sys.argv):
+        if "-ps" in sys.argv:
             print("[PS] Calcul du PS en cours...")
-            resultat = calculPS(tfidf, idf)
+            RESULTAT = calculPS(TFIDF, IDF)
             print("[PS] Calcul du PS finis")
-        if ("-cd" in sys.argv):
+        if "-cd" in sys.argv:
             print("[CD] Calcul du CD en cours...")
-            resultat = calculCD(tfidf, idf)
+            RESULTAT = calculCD(TFIDF, IDF)
             print("[CD] Calcul du CD finis")
-        if ("-cos" in sys.argv):
+        if "-cos" in sys.argv:
             print("[COS] Calcul du COS en cours...")
-            resultat = calculCOS(tfidf, idf)
+            RESULTAT = calculCOS(TFIDF, IDF)
             print("[COS] Calcul du COS finis")
-        if ("-jac" in sys.argv):
+        if "-jac" in sys.argv:
             print("[JACCARD] Calcul du JACCARD en cours...")
-            resultat = calculJACCARD(tfidf, idf)
+            RESULTAT = calculJACCARD(TFIDF, IDF)
             print("[JACCARD] Calcul du JACCARD finis")
-
-    name = ""
-    for i in range(1,len(sys.argv)):
-        name += sys.argv[i]
-    outfile = open("resultats/result"+name+".json",'w')
-    outfile.write(json.dumps(resultat))
+        if "-ps" in sys.argv or "-cd" in sys.argv or \
+           "-cos" in sys.argv or "-jac" in sys.argv:
+            NAME = ""
+            for i in range(1, len(sys.argv)):
+                NAME += sys.argv[i]
+            OUTFILE = open("RESULTATs/result"+NAME+".json", 'w')
+            OUTFILE.write(json.dumps(RESULTAT))
+        if sys.argv[1] == "tfn-idf-ps" or sys.argv[1] == "tfn-idf-cd" or \
+           sys.argv[1] == "tfn-idf-cos" or sys.argv[1] == "tfn-idf-jac" or \
+           sys.argv[1] == "tfr-idf-ps" or sys.argv[1] == "tfr-idf-cd" or \
+           sys.argv[1] == "tfr-idf-cos" or sys.argv[1] == "tfr-idf-jac" or \
+           sys.argv[1] == "s1-tfn-idf-ps" or sys.argv[1] == "s1-tfn-idf-cd" or\
+           sys.argv[1] == "s1-tfn-idf-cos" or sys.argv[1] == "s1-tfn-idf-jac" \
+           or sys.argv[1] == "s1-tfr-idf-ps" or sys.argv[1] == "s1-tfr-idf-cd"\
+           or sys.argv[1] == "s1-tfr-idf-cos" or sys.argv[1] == "s1-tfr-idf-jac"\
+           or sys.argv[1] == "s2-tfn-idf-ps" or sys.argv[1] == "s2-tfn-idf-cd"\
+           or sys.argv[1] == "s2-tfn-idf-cos" or sys.argv[1] == "s2-tfn-idf-jac"\
+           or sys.argv[1] == "s2-tfr-idf-ps" or sys.argv[1] == "s2-tfr-idf-cd" \
+           or sys.argv[1] == "s2-tfr-idf-cos" \
+           or sys.argv[1] == "s2-tfr-idf-jac":
+            calculRappelPrecision(str(sys.argv[1]))

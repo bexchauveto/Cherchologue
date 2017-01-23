@@ -1,10 +1,10 @@
 #!/bin/bash
 
-./main.py 1 tfn-idf-ps
-./main.py 1 tfn-idf-cd
-./main.py 1 tfn-idf-cos
-./main.py 1 tfn-idf-jac
-./main.py 1 tfr-idf-ps
-./main.py 1 tfr-idf-cd
-./main.py 1 tfr-idf-cos
-./main.py 1 tfr-idf-jac
+./main.py tfn-idf-ps
+./main.py tfn-idf-cd
+./main.py tfn-idf-cos
+./main.py tfn-idf-jac
+./main.py tfr-idf-ps
+./main.py tfr-idf-cd
+./main.py tfr-idf-cos
+./main.py tfr-idf-jac

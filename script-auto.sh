@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in {1..1}
+for i in {1..11}
 do
 	./main.py -q${i} -tfn -idf -ps
 	./main.py -q${i} -tfn -idf -cd
