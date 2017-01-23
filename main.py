@@ -361,7 +361,7 @@ def requete_tf_robertson(requete):
 
     return ponderation_tf_finale
 
-def calculIDF(mot_requete):
+def calcul_idf(mot_requete):
     """
     Fonction calcul idf
     """
@@ -374,7 +374,7 @@ def calculIDF(mot_requete):
             return math.log(len(index_reverse["documents"])/len(mot["fichiers"]))
     return 0
 
-def calculTFIDF(tf, idf):
+def calcul_tfidf(tf, idf):
     """
     Fonction calcul tfidf
     """
@@ -386,7 +386,7 @@ def calculTFIDF(tf, idf):
         tfidf[tf[i][0][0]] = tmp
     return sorted(tfidf.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculPS(tfidf, idf):
+def calcul_ps(tfidf, idf):
     """
     Fonction calcul ps
     """
@@ -398,7 +398,7 @@ def calculPS(tfidf, idf):
         ps[tfidf[i][0]] = tmp
     return sorted(ps.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculCD(tfidf, idf):
+def calcul_cd(tfidf, idf):
     """
     Fonction calcul cd
     """
@@ -413,7 +413,7 @@ def calculCD(tfidf, idf):
         cd[tfidf[i][0]] = tmp
     return sorted(cd.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculCOS(tfidf, idf):
+def calcul_cos(tfidf, idf):
     """
     Fonction calcul cos
     """
@@ -428,7 +428,7 @@ def calculCOS(tfidf, idf):
         cos[tfidf[i][0]] = tmp
     return sorted(cos.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculJACCARD(tfidf, idf):
+def calcul_jaccard(tfidf, idf):
     """
     Fonction calcul jaccard
     """
@@ -444,7 +444,7 @@ def calculJACCARD(tfidf, idf):
         jac[tfidf[i][0]] = tmp
     return sorted(jac.items(), key=operator.itemgetter(1), reverse=True)
 
-def calculRappelPrecision(methode):
+def calcul_rappel_precision(methode):
     """
     Fonction calcul rappel precision
     """
@@ -664,26 +664,26 @@ if __name__ == "__main__":
         if "-idf" in sys.argv:
             print("[IDF] Calcul de l'IDF en cours...")
             for mot in REQUETE.split():
-                IDF.append(calculIDF(mot))
+                IDF.append(calcul_idf(mot))
             print("[IDF] Calcul de l'IDF finis")
             print("[TF.IDF] Calcul de TF.IDF en cours...")
-            TFIDF = calculTFIDF(TF, IDF)
+            TFIDF = calcul_tfidf(TF, IDF)
             print("[TF.IDF] Calcul de TF.IDF finis")
         if "-ps" in sys.argv:
             print("[PS] Calcul du PS en cours...")
-            RESULTAT = calculPS(TFIDF, IDF)
+            RESULTAT = calcul_ps(TFIDF, IDF)
             print("[PS] Calcul du PS finis")
         if "-cd" in sys.argv:
             print("[CD] Calcul du CD en cours...")
-            RESULTAT = calculCD(TFIDF, IDF)
+            RESULTAT = calcul_cd(TFIDF, IDF)
             print("[CD] Calcul du CD finis")
         if "-cos" in sys.argv:
             print("[COS] Calcul du COS en cours...")
-            RESULTAT = calculCOS(TFIDF, IDF)
+            RESULTAT = calcul_cos(TFIDF, IDF)
             print("[COS] Calcul du COS finis")
         if "-jac" in sys.argv:
             print("[JACCARD] Calcul du JACCARD en cours...")
-            RESULTAT = calculJACCARD(TFIDF, IDF)
+            RESULTAT = calcul_jaccard(TFIDF, IDF)
             print("[JACCARD] Calcul du JACCARD finis")
         if "-ps" in sys.argv or "-cd" in sys.argv or \
            "-cos" in sys.argv or "-jac" in sys.argv:
@@ -705,4 +705,4 @@ if __name__ == "__main__":
            or sys.argv[1] == "s2-tfr-idf-ps" or sys.argv[1] == "s2-tfr-idf-cd" \
            or sys.argv[1] == "s2-tfr-idf-cos" \
            or sys.argv[1] == "s2-tfr-idf-jac":
-            calculRappelPrecision(str(sys.argv[1]))
+            calcul_rappel_precision(str(sys.argv[1]))
