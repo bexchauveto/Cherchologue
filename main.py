@@ -478,6 +478,34 @@ def calcul_rappel_precision(methode):
         out_file.write(str(tableau_a_deux_dimensions[i][0]) + ", " + \
         str(tableau_a_deux_dimensions[i][1]) + "\n")
 
+def calcul_rappel_precision_question(numq, methode, qrel, result):
+    fichier_qrel = open(qrel,'r')
+    sep = fichier_qrel.read().split("\n")
+    reference = {}
+    nb_pertinents = 0
+    for i in range(0, len(sep)-1):
+        reference[sep[i].split("\t")[0]] = sep[i].split("\t")[1]
+        if sep[i].split("\t")[1] == "1":
+            nb_pertinents += 1
+
+    result_file = open(result,'r')
+    fichier_result = json.load(result_file)
+
+    tableau_a_deux_dimensions = [[0 for x in range(0,2)] for y in range(0,len(fichier_result))]
+    nb_fichiers_pertinents_trouves = 0
+    for i in range(0,len(fichier_result)):
+        if reference[fichier_result[i][0]] == "1":
+            nb_fichiers_pertinents_trouves += 1
+        tableau_a_deux_dimensions[i][0] = nb_fichiers_pertinents_trouves/nb_pertinents
+        tableau_a_deux_dimensions[i][1] = nb_fichiers_pertinents_trouves/(i+1)
+
+    pprint(tableau_a_deux_dimensions)
+
+    out_file = open("evaluations/rappel-precision-" + numq + "-" + methode + ".csv",'w')
+    out_file.write("Ra, Pr\n")
+    for i in range(0,len(tableau_a_deux_dimensions)):
+        out_file.write(str(tableau_a_deux_dimensions[i][0]) + ", " + str(tableau_a_deux_dimensions[i][1]) + "\n")
+
 def ask(queryString):
     """
     Execute une requête SPARQL
@@ -615,6 +643,8 @@ if __name__ == "__main__":
     "membre jury Globes de Cristal 2012", "prix Omar Sy Globes de Cristal 2012", \
     "lieu Globes Cristal 2012", "prix Omar Sy", "acteur a joué avec Omar Sy", \
     "prix enfant de Trappes", "personne a joué avec Omar Sy"]
+
+    # calcul_rappel_precision_question(str(sys.argv[1]), sys.argv[2],"../RessourcesProjet/qrels/qrelQ"+str(sys.argv[1])+".txt","resultats/result-q1-"+sys.argv[2]+".json")
 
     TF = []
     IDF = []
