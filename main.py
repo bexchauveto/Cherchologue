@@ -735,4 +735,7 @@ if __name__ == "__main__":
            or sys.argv[1] == "s2-tfr-idf-ps" or sys.argv[1] == "s2-tfr-idf-cd" \
            or sys.argv[1] == "s2-tfr-idf-cos" \
            or sys.argv[1] == "s2-tfr-idf-jac":
-            calcul_rappel_precision(str(sys.argv[1]))
+            if sys.argv[2] == 12 :
+                calcul_rappel_precision_question(str(sys.argv[2]), sys.argv[1],"../RessourcesProjet/qrels/qrelQ"+str(sys.argv[2])+".txt","resultats/result-q"+str(sys.argv[2])+"-"+sys.argv[1]+".json")
+            else:
+                calcul_rappel_precision(str(sys.argv[1]))
